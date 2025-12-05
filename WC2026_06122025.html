@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIFA World Cup 2026 - Simulation Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Teko:wght@300;400;500;600;700&family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        h1, h2, h3, .font-teko {
+            font-family: 'Teko', sans-serif;
+        }
+
+        .group-card {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid #334155;
+            transition: transform 0.2s;
+        }
+        
+        .group-card:hover {
+            transform: translateY(-2px);
+            border-color: #64748b;
+        }
+
+        .flag-icon {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+
+        /* Bracket Specifics */
+        .bracket-container {
+            overflow-x: auto;
+            padding: 40px;
+            background: #0b1120;
+            border-radius: 12px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .matchup {
+            border: 1px solid #334155;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 8px;
+            width: 180px;
+            position: relative;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .matchup:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+
+        .matchup .team {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .matchup .team.winner {
+            background-color: rgba(34, 197, 94, 0.2);
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .matchup .team.loser {
+            opacity: 0.6;
+        }
+
+        .score {
+            font-family: 'Teko', sans-serif;
+            font-size: 1.1rem;
+        }
+
+        /* Connector Lines */
+        .round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            margin-right: 40px;
+        }
+        
+        .bracket-flex {
+            display: flex;
+        }
+
+        .connector {
+            position: absolute;
+            right: -20px;
+            border: 2px solid #475569;
+            z-index: 1;
+        }
+
+        /* Badge Styles */
+        .badge-q {
+            background-color: #22c55e;
+            color: #000;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .badge-out {
+            background-color: #ef4444;
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* Lore Tooltip */
+        .lore-tooltip {
+            visibility: hidden;
+            width: 220px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 10;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 1px solid #3b82f6;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .matchup:hover .lore-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .lore-header {
+            font-weight: bold;
+            color: #60a5fa;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        /* Table specific */
+        .table-row-animate {
+            transition: background-color 0.2s;
+        }
+        .table-row-animate:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        .cutoff-line {
+            border-bottom: 2px dashed #ef4444;
+            position: relative;
+        }
+        .cutoff-line::after {
+            content: "ELIMINATION ZONE";
+            position: absolute;
+            right: 10px;
+            bottom: -22px;
+            font-size: 0.7rem;
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">WORLD CUP 2026</h1>
+            <p class="text-xl text-slate-400">Simulation Dashboard • Predicted Results</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-center gap-6 mb-8 flex-wrap">
+            <button onclick="showSection('groups')" class="px-6 py-2 rounded-full bg-slate-700 hover:bg-blue-600 transition font-teko text-xl tracking-wide" id="btn-groups">GROUP STANDINGS</button>
+            <button onclick="showSection('third')" class="px-6 py-2 rounded-full bg-slate-700 hover:bg-blue-600 transition font-teko text-xl tracking-wide" id="btn-third">3RD PLACE TABLE</button>
+            <button onclick="showSection('bracket')" class="px-6 py-2 rounded-full bg-slate-800 hover:bg-blue-600 transition font-teko text-xl tracking-wide" id="btn-bracket">KNOCKOUT BRACKET</button>
+        </div>
+
+        <!-- Group Stage Section -->
+        <div id="groups-section" class="animate-fade-in">
+            <h2 class="text-4xl font-teko mb-6 border-b border-slate-700 pb-2">Group Stage Results</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Generated Groups Script will populate this -->
+            </div>
+        </div>
+
+        <!-- 3rd Place Section -->
+        <div id="third-section" class="hidden animate-fade-in">
+             <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
+                <h2 class="text-4xl font-teko">3rd Place Standings</h2>
+                <div class="text-sm text-slate-400">
+                    Top 8 qualify for Round of 32
+                </div>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-6 shadow-lg max-w-4xl mx-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-slate-400 border-b border-slate-700 text-sm uppercase tracking-wider">
+                            <th class="p-3">Rk</th>
+                            <th class="p-3">Team</th>
+                            <th class="p-3">Grp</th>
+                            <th class="p-3 text-center">Pts</th>
+                            <th class="p-3 text-center">GD</th>
+                            <th class="p-3 text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="third-place-body" class="text-lg">
+                        <!-- JS populates this -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bracket Section -->
+        <div id="bracket-section" class="hidden animate-fade-in">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
+                <h2 class="text-4xl font-teko">The Road to Glory</h2>
+                <div class="text-sm text-slate-400 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> Hover over matches for Story Mode
+                </div>
+            </div>
+            
+            <div class="bracket-container">
+                <div class="bracket-flex" id="bracket-root">
+                    <!-- Javascript will build the bracket here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- DATA ---
+    const groups = [
+        { name: "Group A", teams: [
+            { name: "Denmark", code: "DEN", flag: "🇩🇰", pts: 7, gd: 4, pos: 1, status: "Q" },
+            { name: "Mexico", code: "MEX", flag: "🇲🇽", pts: 5, gd: 2, pos: 2, status: "Q" },
+            { name: "South Korea", code: "KOR", flag: "🇰🇷", pts: 4, gd: 1, pos: 3, status: "Q" },
+            { name: "South Africa", code: "RSA", flag: "🇿🇦", pts: 0, gd: -7, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group B", teams: [
+            { name: "Italy", code: "ITA", flag: "🇮🇹", pts: 7, gd: 5, pos: 1, status: "Q" },
+            { name: "Switzerland", code: "SUI", flag: "🇨🇭", pts: 5, gd: 2, pos: 2, status: "Q" },
+            { name: "Canada", code: "CAN", flag: "🇨🇦", pts: 4, gd: -1, pos: 3, status: "Q" },
+            { name: "Qatar", code: "QAT", flag: "🇶🇦", pts: 0, gd: -6, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group C", teams: [
+            { name: "Brazil", code: "BRA", flag: "🇧🇷", pts: 7, gd: 6, pos: 1, status: "Q" },
+            { name: "Morocco", code: "MAR", flag: "🇲🇦", pts: 5, gd: 2, pos: 2, status: "Q" },
+            { name: "Scotland", code: "SCO", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", pts: 4, gd: 0, pos: 3, status: "Q" },
+            { name: "Haiti", code: "HAI", flag: "🇭🇹", pts: 0, gd: -8, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group D", teams: [
+            { name: "USA", code: "USA", flag: "🇺🇸", pts: 7, gd: 5, pos: 1, status: "Q" },
+            { name: "Turkey", code: "TUR", flag: "🇹🇷", pts: 6, gd: 3, pos: 2, status: "Q" },
+            { name: "Australia", code: "AUS", flag: "🇦🇺", pts: 3, gd: -2, pos: 3, status: "OUT" },
+            { name: "Paraguay", code: "PAR", flag: "🇵🇾", pts: 1, gd: -6, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group E", teams: [
+            { name: "Germany", code: "GER", flag: "🇩🇪", pts: 9, gd: 8, pos: 1, status: "Q" },
+            { name: "Ecuador", code: "ECU", flag: "🇪🇨", pts: 4, gd: 1, pos: 2, status: "Q" },
+            { name: "Côte d'Ivoire", code: "CIV", flag: "🇨🇮", pts: 4, gd: 3, pos: 3, status: "Q" },
+            { name: "Curaçao", code: "CUW", flag: "🇨🇼", pts: 0, gd: -12, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group F", teams: [
+            { name: "Netherlands", code: "NED", flag: "🇳🇱", pts: 6, gd: 4, pos: 1, status: "Q" },
+            { name: "Japan", code: "JPN", flag: "🇯🇵", pts: 6, gd: 2, pos: 2, status: "Q" },
+            { name: "Ukraine", code: "UKR", flag: "🇺🇦", pts: 6, gd: 1, pos: 3, status: "Q" },
+            { name: "Tunisia", code: "TUN", flag: "🇹🇳", pts: 0, gd: -7, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group G", teams: [
+            { name: "Belgium", code: "BEL", flag: "🇧🇪", pts: 7, gd: 4, pos: 1, status: "Q" },
+            { name: "Egypt", code: "EGY", flag: "🇪🇬", pts: 5, gd: 2, pos: 2, status: "Q" },
+            { name: "Iran", code: "IRN", flag: "🇮🇷", pts: 2, gd: -1, pos: 3, status: "OUT" },
+            { name: "New Zealand", code: "NZL", flag: "🇳🇿", pts: 1, gd: -5, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group H", teams: [
+            { name: "Spain", code: "ESP", flag: "🇪🇸", pts: 9, gd: 7, pos: 1, status: "Q" },
+            { name: "Uruguay", code: "URU", flag: "🇺🇾", pts: 6, gd: 3, pos: 2, status: "Q" },
+            { name: "Saudi Arabia", code: "KSA", flag: "🇸🇦", pts: 1, gd: -5, pos: 3, status: "OUT" },
+            { name: "Cabo Verde", code: "CPV", flag: "🇨🇻", pts: 1, gd: -5, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group I", teams: [
+            { name: "France", code: "FRA", flag: "🇫🇷", pts: 6, gd: 5, pos: 1, status: "Q" },
+            { name: "Senegal", code: "SEN", flag: "🇸🇳", pts: 6, gd: 3, pos: 2, status: "Q" },
+            { name: "Norway", code: "NOR", flag: "🇳🇴", pts: 6, gd: 2, pos: 3, status: "Q" },
+            { name: "Iraq", code: "IRQ", flag: "🇮🇶", pts: 0, gd: -10, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group J", teams: [
+            { name: "Argentina", code: "ARG", flag: "🇦🇷", pts: 9, gd: 8, pos: 1, status: "Q" },
+            { name: "Austria", code: "AUT", flag: "🇦🇹", pts: 6, gd: 3, pos: 2, status: "Q" },
+            { name: "Algeria", code: "ALG", flag: "🇩🇿", pts: 3, gd: 0, pos: 3, status: "Q" },
+            { name: "Jordan", code: "JOR", flag: "🇯🇴", pts: 0, gd: -11, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group K", teams: [
+            { name: "Portugal", code: "POR", flag: "🇵🇹", pts: 9, gd: 9, pos: 1, status: "Q" },
+            { name: "Colombia", code: "COL", flag: "🇨🇴", pts: 6, gd: 4, pos: 2, status: "Q" },
+            { name: "Jamaica", code: "JAM", flag: "🇯🇲", pts: 3, gd: -4, pos: 3, status: "OUT" },
+            { name: "Uzbekistan", code: "UZB", flag: "🇺🇿", pts: 0, gd: -9, pos: 4, status: "OUT" }
+        ]},
+        { name: "Group L", teams: [
+            { name: "England", code: "ENG", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", pts: 7, gd: 5, pos: 1, status: "Q" },
+            { name: "Croatia", code: "CRO", flag: "🇭🇷", pts: 5, gd: 2, pos: 2, status: "Q" },
+            { name: "Ghana", code: "GHA", flag: "🇬🇭", pts: 3, gd: 2, pos: 3, status: "Q" },
+            { name: "Panama", code: "PAN", flag: "🇵🇦", pts: 1, gd: -9, pos: 4, status: "OUT" }
+        ]}
+    ];
+
+    const bracketData = {
+        r32: [
+            { id: "M73", t1: "Mexico", f1: "🇲🇽", s1: "1 (3)", t2: "Switzerland", f2: "🇨🇭", s2: "1 (4)", lore: "Switzerland silences the Azteca on penalties." },
+            { id: "M75", t1: "Netherlands", f1: "🇳🇱", s1: "1", t2: "Morocco", f2: "🇲🇦", s2: "0", lore: "Gakpo winner in the 80th minute." },
+            { id: "M79", t1: "Denmark", f1: "🇩🇰", s1: "1", t2: "Côte d'Ivoire", f2: "🇨🇮", s2: "0", lore: "Tactical masterclass by the Danes." },
+            { id: "M80", t1: "England", f1: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", s1: "3", t2: "Norway", f2: "🇳🇴", s2: "2", lore: "Haaland terrorizes England but Bellingham saves them." },
+            { id: "M74", t1: "Germany", f1: "🇩🇪", s1: "2", t2: "Scotland", f2: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", s2: "0", lore: "Musiala & Wirtz too precise for the brave Scots." },
+            { id: "M77", t1: "France", f1: "🇫🇷", s1: "3", t2: "Ukraine", f2: "🇺🇦", s2: "0", lore: "Mbappe scores two in a routine win." },
+            { id: "M76", t1: "Brazil", f1: "🇧🇷", s1: "3", t2: "Japan", f2: "🇯🇵", s2: "1", lore: "Vini Jr destroys the Japanese high line." },
+            { id: "M78", t1: "Ecuador", f1: "🇪🇨", s1: "1", t2: "Senegal", f2: "🇸🇳", s2: "2", lore: "The Hipster Final - pure chaos." },
+            
+            // Right Side
+            { id: "M84", t1: "Spain", f1: "🇪🇸", s1: "2", t2: "Austria", f2: "🇦🇹", s2: "1", lore: "Spain passes through the heavy Austrian press." },
+            { id: "M83", t1: "Colombia", f1: "🇨🇴", s1: "0", t2: "Croatia", f2: "🇭🇷", s2: "1", lore: "Modric masterclass slows the game to a crawl." },
+            { id: "M81", t1: "USA", f1: "🇺🇸", s1: "2", t2: "Canada", f2: "🇨🇦", s2: "1", lore: "CIVIL WAR! Pulisic wins it in the 90th min." },
+            { id: "M82", t1: "Belgium", f1: "🇧🇪", s1: "2", t2: "South Korea", f2: "🇰🇷", s2: "1", lore: "Belgium survives in Extra Time." },
+            { id: "M86", t1: "Argentina", f1: "🇦🇷", s1: "1 (5)", t2: "Uruguay", f2: "🇺🇾", s2: "1 (4)", lore: "Clásico del Río de la Plata. Pure violence." },
+            { id: "M88", t1: "Turkey", f1: "🇹🇷", s1: "2", t2: "Egypt", f2: "🇪🇬", s2: "1", lore: "Arda Güler outshines Mo Salah." },
+            { id: "M85", t1: "Italy", f1: "🇮🇹", s1: "1", t2: "Algeria", f2: "🇩🇿", s2: "0", lore: "Classic Italian defensive wall." },
+            { id: "M87", t1: "Portugal", f1: "🇵🇹", s1: "2", t2: "Ghana", f2: "🇬🇭", s2: "0", lore: "The Ronaldo grudge match settled easily." },
+        ],
+        r16: [
+            { id: "M90", t1: "Switzerland", f1: "🇨🇭", s1: "0", t2: "Netherlands", f2: "🇳🇱", s2: "2", lore: "Dutch play safe and avoid the trap." },
+            { id: "M92", t1: "Denmark", f1: "🇩🇰", s1: "0", t2: "England", f2: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", s2: "1", lore: "Ugly Southgate-style win." },
+            { id: "M89", t1: "Germany", f1: "🇩🇪", s1: "1", t2: "France", f2: "🇫🇷", s2: "2", lore: "European Civil War. Mbappe winner in ET." },
+            { id: "M91", t1: "Brazil", f1: "🇧🇷", s1: "3", t2: "Senegal", f2: "🇸🇳", s2: "1", lore: "Joga Bonito overwhelms the African champs." },
+            
+            { id: "M93", t1: "Spain", f1: "🇪🇸", s1: "1", t2: "Croatia", f2: "🇭🇷", s2: "0", lore: "Croatia finally runs out of gas." },
+            { id: "M94", t1: "USA", f1: "🇺🇸", s1: "3", t2: "Belgium", f2: "🇧🇪", s2: "2", lore: "Thriller! USA to the Quarters on home soil." },
+            { id: "M95", t1: "Argentina", f1: "🇦🇷", s1: "2", t2: "Turkey", f2: "🇹🇷", s2: "1", lore: "Messi & Martinez experience wins it." },
+            { id: "M96", t1: "Italy", f1: "🇮🇹", s1: "0", t2: "Portugal", f2: "🇵🇹", s2: "1", lore: "Leão magic breaks the Italian lock." }
+        ],
+        qf: [
+            { id: "QF1", t1: "Netherlands", f1: "🇳🇱", s1: "0", t2: "France", f2: "🇫🇷", s2: "2", lore: "Tactical masterclass. Griezmann buries it." },
+            { id: "QF3", t1: "England", f1: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", s1: "2 (3)", t2: "Brazil", f2: "🇧🇷", s2: "2 (4)", lore: "Historic Classic. England loses on penalties again." },
+            { id: "QF2", t1: "Spain", f1: "🇪🇸", s1: "2", t2: "USA", f2: "🇺🇸", s2: "1", lore: "Hosts out, but heads held high. Technical gap too big." },
+            { id: "QF4", t1: "Argentina", f1: "🇦🇷", s1: "2", t2: "Portugal", f2: "🇵🇹", s2: "1", lore: "THE LAST DANCE. Messi beats Ronaldo in ET." }
+        ],
+        sf: [
+            { id: "SF1", t1: "France", f1: "🇫🇷", s1: "2", t2: "Spain", f2: "🇪🇸", s2: "0", lore: "Mbappe & Camavinga destroy Spain on counters." },
+            { id: "SF2", t1: "Brazil", f1: "🇧🇷", s1: "2", t2: "Argentina", f2: "🇦🇷", s2: "0", lore: "Superclásico War. Endrick seals it." }
+        ],
+        final: [
+            { id: "FINAL", t1: "France", f1: "🇫🇷", s1: "1", t2: "Brazil", f2: "🇧🇷", s2: "2", lore: "THE HEXA! Neymar hits the post & in at 116'." }
+        ]
+    };
+
+    function renderGroups() {
+        const container = document.querySelector('#groups-section > div');
+        container.innerHTML = groups.map(g => `
+            <div class="group-card rounded-xl p-4">
+                <h3 class="text-2xl font-teko text-blue-400 mb-3 flex justify-between">
+                    ${g.name} 
+                </h3>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-slate-500 border-b border-slate-700">
+                            <th class="text-left pb-2">Team</th>
+                            <th class="text-center pb-2">Pts</th>
+                            <th class="text-right pb-2">Sts</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        ${g.teams.map((t, i) => `
+                            <tr class="h-10">
+                                <td class="flex items-center h-10">
+                                    <span class="mr-2">${t.flag}</span>
+                                    <span class="${i < 2 ? 'text-white font-bold' : 'text-slate-300'}">${t.name}</span>
+                                </td>
+                                <td class="text-center font-teko text-lg">${t.pts}</td>
+                                <td class="text-right">
+                                    <span class="${t.status === 'Q' ? 'badge-q' : 'badge-out'}">${t.status}</span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('');
+    }
+
+    function renderThirdPlace() {
+        // Extract 3rd place teams
+        const thirdPlaceTeams = groups.map(g => {
+            const team = g.teams[2]; // Index 2 is 3rd place
+            return { ...team, group: g.name.replace('Group ', '') };
+        });
+
+        // Sort by Points, then GD
+        thirdPlaceTeams.sort((a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            return b.gd - a.gd;
+        });
+
+        // Render
+        const tbody = document.getElementById('third-place-body');
+        tbody.innerHTML = thirdPlaceTeams.map((t, i) => {
+            const isQualified = i < 8; // Top 8 qualify
+            const cutoffClass = i === 7 ? 'cutoff-line' : '';
+            
+            return `
+                <tr class="border-b border-slate-700 table-row-animate ${cutoffClass}">
+                    <td class="p-3 text-slate-400 font-teko">${i + 1}</td>
+                    <td class="p-3 font-bold flex items-center">
+                        <span class="mr-2 text-xl">${t.flag}</span> ${t.name}
+                    </td>
+                    <td class="p-3 text-slate-400">${t.group}</td>
+                    <td class="p-3 text-center font-teko text-xl text-white">${t.pts}</td>
+                    <td class="p-3 text-center font-mono text-slate-400">${t.gd > 0 ? '+' : ''}${t.gd}</td>
+                    <td class="p-3 text-right">
+                        <span class="${isQualified ? 'badge-q' : 'badge-out'}">${isQualified ? 'QUALIFIED' : 'ELIMINATED'}</span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function createMatchHTML(match) {
+        if (!match) return '<div class="matchup opacity-0"></div>';
+        
+        const score1 = parseInt(match.s1.split(' ')[0]);
+        const score2 = parseInt(match.s2.split(' ')[0]);
+        const w1 = score1 > score2 ? 'winner' : 'loser';
+        const w2 = score2 > score1 ? 'winner' : 'loser';
+
+        return `
+            <div class="matchup">
+                <span class="lore-tooltip">
+                    <span class="lore-header">Story Mode:</span>
+                    ${match.lore}
+                </span>
+                <div class="text-xs text-slate-500 mb-1 flex justify-between">
+                    <span>${match.id}</span>
+                </div>
+                <div class="team ${w1}">
+                    <span class="flex items-center gap-1"><span>${match.f1}</span> ${match.t1}</span>
+                    <span class="score">${match.s1}</span>
+                </div>
+                <div class="team ${w2}">
+                    <span class="flex items-center gap-1"><span>${match.f2}</span> ${match.t2}</span>
+                    <span class="score">${match.s2}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderBracket() {
+        const root = document.getElementById('bracket-root');
+        
+        const rounds = [
+            { name: "Round of 32", matches: bracketData.r32 },
+            { name: "Round of 16", matches: bracketData.r16 },
+            { name: "Quarter Finals", matches: bracketData.qf },
+            { name: "Semi Finals", matches: bracketData.sf },
+            { name: "Grand Final", matches: bracketData.final }
+        ];
+
+        let html = '';
+
+        rounds.forEach((round, rIndex) => {
+            html += `<div class="round">`;
+            html += `<h3 class="text-center text-slate-500 mb-4 font-teko text-xl">${round.name}</h3>`;
+            
+            // Render matches
+            round.matches.forEach(match => {
+                html += createMatchHTML(match);
+                // Spacer logic for visual tree structure would go here in a complex implementation
+                // For this display, we stick to flex-col justification
+            });
+            html += `</div>`;
+        });
+
+        root.innerHTML = html;
+    }
+
+    function showSection(id) {
+        // Hide all sections
+        ['groups', 'bracket', 'third'].forEach(s => {
+            document.getElementById(`${s}-section`).classList.add('hidden');
+            document.getElementById(`btn-${s}`).classList.remove('bg-blue-600', 'text-white');
+            document.getElementById(`btn-${s}`).classList.add('bg-slate-700');
+        });
+
+        // Show active
+        document.getElementById(`${id}-section`).classList.remove('hidden');
+        document.getElementById(`btn-${id}`).classList.remove('bg-slate-700');
+        document.getElementById(`btn-${id}`).classList.add('bg-blue-600', 'text-white');
+    }
+
+    // Init
+    renderGroups();
+    renderThirdPlace(); // New function
+    renderBracket();
+    showSection('bracket'); // Start on bracket
+
+</script>
+</body>
+</html>
