@@ -118,7 +118,7 @@
             font-weight: bold;
         }
 
-        /* Lore Tooltip */
+        /* Lore/Scout Report Tooltip */
         .lore-tooltip {
             visibility: hidden;
             width: 220px;
@@ -128,7 +128,7 @@
             border-radius: 6px;
             padding: 10px;
             position: absolute;
-            z-index: 10;
+            z-index: 50;
             bottom: 110%;
             left: 50%;
             transform: translateX(-50%);
@@ -137,6 +137,49 @@
             font-size: 0.85rem;
             opacity: 0;
             transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        /* Specific tweak for table tooltips */
+        .team-row {
+            position: relative;
+        }
+        /* Only show team tooltip if NOT hovering the ticket */
+        .team-row:hover .team-tooltip {
+            visibility: visible;
+            opacity: 1;
+            bottom: 100%;
+        }
+        
+        /* Ticket Tooltip specific */
+        .ticket-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        .ticket-tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #3f2c22; /* Darker brown/gold theme */
+            color: #fbbf24;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 60; /* Higher than row tooltip */
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 1px solid #fbbf24;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.8);
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .ticket-wrapper:hover .ticket-tooltip {
+            visibility: visible;
+            opacity: 1;
         }
 
         .matchup:hover .lore-tooltip {
@@ -149,6 +192,21 @@
             color: #60a5fa;
             margin-bottom: 4px;
             display: block;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        
+        .ticket-header {
+            font-weight: bold;
+            color: #fbbf24;
+            margin-bottom: 4px;
+            display: block;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #78350f;
+            padding-bottom: 2px;
         }
 
         /* Table specific */
@@ -188,6 +246,14 @@
             <button onclick="showSection('groups')" class="px-6 py-2 rounded-full bg-slate-700 hover:bg-blue-600 transition font-teko text-xl tracking-wide" id="btn-groups">GROUP STANDINGS</button>
             <button onclick="showSection('third')" class="px-6 py-2 rounded-full bg-slate-700 hover:bg-blue-600 transition font-teko text-xl tracking-wide" id="btn-third">3RD PLACE TABLE</button>
             <button onclick="showSection('bracket')" class="px-6 py-2 rounded-full bg-slate-800 hover:bg-blue-600 transition font-teko text-xl tracking-wide" id="btn-bracket">KNOCKOUT BRACKET</button>
+        </div>
+
+        <!-- Legend (Visible on Groups Tab) -->
+        <div id="legend-container" class="text-center mb-6 text-sm text-slate-400 animate-fade-in">
+            <span class="inline-flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
+                <span>🎟️ = Playoff Winner (Hover for details)</span>
+            </span>
+            <span class="ml-4">Hover over any team for Scout Report</span>
         </div>
 
         <!-- Group Stage Section -->
@@ -246,76 +312,76 @@
     // --- DATA ---
     const groups = [
         { name: "Group A", teams: [
-            { name: "Denmark", code: "DEN", flag: "🇩🇰", pts: 7, gd: 4, pos: 1, status: "Q" },
-            { name: "Mexico", code: "MEX", flag: "🇲🇽", pts: 5, gd: 2, pos: 2, status: "Q" },
-            { name: "South Korea", code: "KOR", flag: "🇰🇷", pts: 4, gd: 1, pos: 3, status: "Q" },
-            { name: "South Africa", code: "RSA", flag: "🇿🇦", pts: 0, gd: -7, pos: 4, status: "OUT" }
+            { name: "Denmark", code: "DEN", flag: "🇩🇰", pts: 7, gd: 4, pos: 1, status: "Q", playoff: true, playoffDesc: "PATH D VICTIMS:<br/>Czechia 🇨🇿<br/>Rep. Ireland 🇮🇪<br/>N. Macedonia 🇲🇰", desc: "Too structured for this group. Silenced the Azteca." },
+            { name: "Mexico", code: "MEX", flag: "🇲🇽", pts: 5, gd: 2, pos: 2, status: "Q", playoff: false, desc: "Home crowd carried them. Defense looks shaky." },
+            { name: "South Korea", code: "KOR", flag: "🇰🇷", pts: 4, gd: 1, pos: 3, status: "Q", playoff: false, desc: "Son Heung-min's leadership scraped them through." },
+            { name: "South Africa", code: "RSA", flag: "🇿🇦", pts: 0, gd: -7, pos: 4, status: "OUT", playoff: false, desc: "Pace upfront, but leaked goals for fun." }
         ]},
         { name: "Group B", teams: [
-            { name: "Italy", code: "ITA", flag: "🇮🇹", pts: 7, gd: 5, pos: 1, status: "Q" },
-            { name: "Switzerland", code: "SUI", flag: "🇨🇭", pts: 5, gd: 2, pos: 2, status: "Q" },
-            { name: "Canada", code: "CAN", flag: "🇨🇦", pts: 4, gd: -1, pos: 3, status: "Q" },
-            { name: "Qatar", code: "QAT", flag: "🇶🇦", pts: 0, gd: -6, pos: 4, status: "OUT" }
+            { name: "Italy", code: "ITA", flag: "🇮🇹", pts: 7, gd: 5, pos: 1, status: "Q", playoff: true, playoffDesc: "PATH A VICTIMS:<br/>Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿<br/>Bosnia & Herz. 🇧🇦<br/>N. Ireland 🇬🇧", desc: "Revenge tour complete. Defense is a brick wall." },
+            { name: "Switzerland", code: "SUI", flag: "🇨🇭", pts: 5, gd: 2, pos: 2, status: "Q", playoff: false, desc: "Tournament robots. They never fail the groups." },
+            { name: "Canada", code: "CAN", flag: "🇨🇦", pts: 4, gd: -1, pos: 3, status: "Q", playoff: false, desc: "Barely survived on home soil. Unconvincing." },
+            { name: "Qatar", code: "QAT", flag: "🇶🇦", pts: 0, gd: -6, pos: 4, status: "OUT", playoff: false, desc: "Asian champs found the level too high." }
         ]},
         { name: "Group C", teams: [
-            { name: "Brazil", code: "BRA", flag: "🇧🇷", pts: 7, gd: 6, pos: 1, status: "Q" },
-            { name: "Morocco", code: "MAR", flag: "🇲🇦", pts: 5, gd: 2, pos: 2, status: "Q" },
-            { name: "Scotland", code: "SCO", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", pts: 4, gd: 0, pos: 3, status: "Q" },
-            { name: "Haiti", code: "HAI", flag: "🇭🇹", pts: 0, gd: -8, pos: 4, status: "OUT" }
+            { name: "Brazil", code: "BRA", flag: "🇧🇷", pts: 7, gd: 6, pos: 1, status: "Q", playoff: false, desc: "Vini & Rodrygo are cooking. Hexa loading?" },
+            { name: "Morocco", code: "MAR", flag: "🇲🇦", pts: 5, gd: 2, pos: 2, status: "Q", playoff: false, desc: "Solid low block. Frustrated everyone." },
+            { name: "Scotland", code: "SCO", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", pts: 4, gd: 0, pos: 3, status: "Q", playoff: false, desc: "THEY FINALLY DID IT! Knockouts achieved." },
+            { name: "Haiti", code: "HAI", flag: "🇭🇹", pts: 0, gd: -8, pos: 4, status: "OUT", playoff: false, desc: "Played with heart, but outmatched." }
         ]},
         { name: "Group D", teams: [
-            { name: "USA", code: "USA", flag: "🇺🇸", pts: 7, gd: 5, pos: 1, status: "Q" },
-            { name: "Turkey", code: "TUR", flag: "🇹🇷", pts: 6, gd: 3, pos: 2, status: "Q" },
-            { name: "Australia", code: "AUS", flag: "🇦🇺", pts: 3, gd: -2, pos: 3, status: "OUT" },
-            { name: "Paraguay", code: "PAR", flag: "🇵🇾", pts: 1, gd: -6, pos: 4, status: "OUT" }
+            { name: "USA", code: "USA", flag: "🇺🇸", pts: 7, gd: 5, pos: 1, status: "Q", playoff: false, desc: "Pulisic is playing like a MVP. Home energy is real." },
+            { name: "Turkey", code: "TUR", flag: "🇹🇷", pts: 6, gd: 3, pos: 2, status: "Q", playoff: true, playoffDesc: "PATH C VICTIMS:<br/>Romania 🇷🇴<br/>Slovakia 🇸🇰<br/>Kosovo 🇽🇰", desc: "Arda Güler is a superstar. Dark horses." },
+            { name: "Australia", code: "AUS", flag: "🇦🇺", pts: 3, gd: -2, pos: 3, status: "OUT", playoff: false, desc: "Fought hard, but lacked a true striker." },
+            { name: "Paraguay", code: "PAR", flag: "🇵🇾", pts: 1, gd: -6, pos: 4, status: "OUT", playoff: false, desc: "Gritty, but couldn't score goals." }
         ]},
         { name: "Group E", teams: [
-            { name: "Germany", code: "GER", flag: "🇩🇪", pts: 9, gd: 8, pos: 1, status: "Q" },
-            { name: "Ecuador", code: "ECU", flag: "🇪🇨", pts: 4, gd: 1, pos: 2, status: "Q" },
-            { name: "Côte d'Ivoire", code: "CIV", flag: "🇨🇮", pts: 4, gd: 3, pos: 3, status: "Q" },
-            { name: "Curaçao", code: "CUW", flag: "🇨🇼", pts: 0, gd: -12, pos: 4, status: "OUT" }
+            { name: "Germany", code: "GER", flag: "🇩🇪", pts: 9, gd: 8, pos: 1, status: "Q", playoff: false, desc: "Efficiency machine. Musiala runs the show." },
+            { name: "Ecuador", code: "ECU", flag: "🇪🇨", pts: 4, gd: 1, pos: 2, status: "Q", playoff: false, desc: "Caicedo bossed the midfield. Very physical." },
+            { name: "Côte d'Ivoire", code: "CIV", flag: "🇨🇮", pts: 4, gd: 3, pos: 3, status: "Q", playoff: false, desc: "Demolished Curaçao to boost GD." },
+            { name: "Curaçao", code: "CUW", flag: "🇨🇼", pts: 0, gd: -12, pos: 4, status: "OUT", playoff: false, desc: "A steep learning curve at this level." }
         ]},
         { name: "Group F", teams: [
-            { name: "Netherlands", code: "NED", flag: "🇳🇱", pts: 6, gd: 4, pos: 1, status: "Q" },
-            { name: "Japan", code: "JPN", flag: "🇯🇵", pts: 6, gd: 2, pos: 2, status: "Q" },
-            { name: "Ukraine", code: "UKR", flag: "🇺🇦", pts: 6, gd: 1, pos: 3, status: "Q" },
-            { name: "Tunisia", code: "TUN", flag: "🇹🇳", pts: 0, gd: -7, pos: 4, status: "OUT" }
+            { name: "Netherlands", code: "NED", flag: "🇳🇱", pts: 6, gd: 4, pos: 1, status: "Q", playoff: false, desc: "Survived the Circle of Death on GD." },
+            { name: "Japan", code: "JPN", flag: "🇯🇵", pts: 6, gd: 2, pos: 2, status: "Q", playoff: false, desc: "Giant killers. Their pressing is relentless." },
+            { name: "Ukraine", code: "UKR", flag: "🇺🇦", pts: 6, gd: 1, pos: 3, status: "Q", playoff: true, playoffDesc: "PATH B VICTIMS:<br/>Poland 🇵🇱<br/>Sweden 🇸🇪<br/>Albania 🇦🇱", desc: "Unlucky to finish 3rd with 6 points!" },
+            { name: "Tunisia", code: "TUN", flag: "🇹🇳", pts: 0, gd: -7, pos: 4, status: "OUT", playoff: false, desc: "Couldn't keep up with the top 3." }
         ]},
         { name: "Group G", teams: [
-            { name: "Belgium", code: "BEL", flag: "🇧🇪", pts: 7, gd: 4, pos: 1, status: "Q" },
-            { name: "Egypt", code: "EGY", flag: "🇪🇬", pts: 5, gd: 2, pos: 2, status: "Q" },
-            { name: "Iran", code: "IRN", flag: "🇮🇷", pts: 2, gd: -1, pos: 3, status: "OUT" },
-            { name: "New Zealand", code: "NZL", flag: "🇳🇿", pts: 1, gd: -5, pos: 4, status: "OUT" }
+            { name: "Belgium", code: "BEL", flag: "🇧🇪", pts: 7, gd: 4, pos: 1, status: "Q", playoff: false, desc: "Old guard still has one last fight left." },
+            { name: "Egypt", code: "EGY", flag: "🇪🇬", pts: 5, gd: 2, pos: 2, status: "Q", playoff: false, desc: "Salah dragged them through. Solid defense." },
+            { name: "Iran", code: "IRN", flag: "🇮🇷", pts: 2, gd: -1, pos: 3, status: "OUT", playoff: false, desc: "Two 0-0 draws. Hard to beat, hard to watch." },
+            { name: "New Zealand", code: "NZL", flag: "🇳🇿", pts: 1, gd: -5, pos: 4, status: "OUT", playoff: false, desc: "Physical, but technically limited." }
         ]},
         { name: "Group H", teams: [
-            { name: "Spain", code: "ESP", flag: "🇪🇸", pts: 9, gd: 7, pos: 1, status: "Q" },
-            { name: "Uruguay", code: "URU", flag: "🇺🇾", pts: 6, gd: 3, pos: 2, status: "Q" },
-            { name: "Saudi Arabia", code: "KSA", flag: "🇸🇦", pts: 1, gd: -5, pos: 3, status: "OUT" },
-            { name: "Cabo Verde", code: "CPV", flag: "🇨🇻", pts: 1, gd: -5, pos: 4, status: "OUT" }
+            { name: "Spain", code: "ESP", flag: "🇪🇸", pts: 9, gd: 7, pos: 1, status: "Q", playoff: false, desc: "Yamal & Nico Williams are scary good." },
+            { name: "Uruguay", code: "URU", flag: "🇺🇾", pts: 6, gd: 3, pos: 2, status: "Q", playoff: false, desc: "Valverde is everywhere. Classic Uruguay grit." },
+            { name: "Saudi Arabia", code: "KSA", flag: "🇸🇦", pts: 1, gd: -5, pos: 3, status: "OUT", playoff: false, desc: "The gap to the top teams is still big." },
+            { name: "Cabo Verde", code: "CPV", flag: "🇨🇻", pts: 1, gd: -5, pos: 4, status: "OUT", playoff: false, desc: "Fun to watch, but naive defensively." }
         ]},
         { name: "Group I", teams: [
-            { name: "France", code: "FRA", flag: "🇫🇷", pts: 6, gd: 5, pos: 1, status: "Q" },
-            { name: "Senegal", code: "SEN", flag: "🇸🇳", pts: 6, gd: 3, pos: 2, status: "Q" },
-            { name: "Norway", code: "NOR", flag: "🇳🇴", pts: 6, gd: 2, pos: 3, status: "Q" },
-            { name: "Iraq", code: "IRQ", flag: "🇮🇶", pts: 0, gd: -10, pos: 4, status: "OUT" }
+            { name: "France", code: "FRA", flag: "🇫🇷", pts: 6, gd: 5, pos: 1, status: "Q", playoff: false, desc: "B-Team played game 3 and lost, but still 1st." },
+            { name: "Senegal", code: "SEN", flag: "🇸🇳", pts: 6, gd: 3, pos: 2, status: "Q", playoff: false, desc: "Mane's leadership is crucial. Dangerous." },
+            { name: "Norway", code: "NOR", flag: "🇳🇴", pts: 6, gd: 2, pos: 3, status: "Q", playoff: false, desc: "Haaland scored 4, but tough group luck." },
+            { name: "Iraq", code: "IRQ", flag: "🇮🇶", pts: 0, gd: -10, pos: 4, status: "OUT", playoff: true, playoffDesc: "PATH 2 VICTIMS:<br/>Bolivia 🇧🇴<br/>Suriname 🇸🇷", desc: "Happy to qualify, but outclassed here." }
         ]},
         { name: "Group J", teams: [
-            { name: "Argentina", code: "ARG", flag: "🇦🇷", pts: 9, gd: 8, pos: 1, status: "Q" },
-            { name: "Austria", code: "AUT", flag: "🇦🇹", pts: 6, gd: 3, pos: 2, status: "Q" },
-            { name: "Algeria", code: "ALG", flag: "🇩🇿", pts: 3, gd: 0, pos: 3, status: "Q" },
-            { name: "Jordan", code: "JOR", flag: "🇯🇴", pts: 0, gd: -11, pos: 4, status: "OUT" }
+            { name: "Argentina", code: "ARG", flag: "🇦🇷", pts: 9, gd: 8, pos: 1, status: "Q", playoff: false, desc: "Messi is cruising. Team chemistry is 10/10." },
+            { name: "Austria", code: "AUT", flag: "🇦🇹", pts: 6, gd: 3, pos: 2, status: "Q", playoff: false, desc: "Rangnick-ball works! High press chaos." },
+            { name: "Algeria", code: "ALG", flag: "🇩🇿", pts: 3, gd: 0, pos: 3, status: "Q", playoff: false, desc: "Mahrez magic saved them in the last game." },
+            { name: "Jordan", code: "JOR", flag: "🇯🇴", pts: 0, gd: -11, pos: 4, status: "OUT", playoff: false, desc: "Great Asian Cup run, but World Cup is hard." }
         ]},
         { name: "Group K", teams: [
-            { name: "Portugal", code: "POR", flag: "🇵🇹", pts: 9, gd: 9, pos: 1, status: "Q" },
-            { name: "Colombia", code: "COL", flag: "🇨🇴", pts: 6, gd: 4, pos: 2, status: "Q" },
-            { name: "Jamaica", code: "JAM", flag: "🇯🇲", pts: 3, gd: -4, pos: 3, status: "OUT" },
-            { name: "Uzbekistan", code: "UZB", flag: "🇺🇿", pts: 0, gd: -9, pos: 4, status: "OUT" }
+            { name: "Portugal", code: "POR", flag: "🇵🇹", pts: 9, gd: 9, pos: 1, status: "Q", playoff: false, desc: "Stacked squad. Ronaldo still finding goals." },
+            { name: "Colombia", code: "COL", flag: "🇨🇴", pts: 6, gd: 4, pos: 2, status: "Q", playoff: false, desc: "Luis Diaz is electric. Dark horse contender." },
+            { name: "Jamaica", code: "JAM", flag: "🇯🇲", pts: 3, gd: -4, pos: 3, status: "OUT", playoff: true, playoffDesc: "PATH 1 VICTIMS:<br/>DR Congo 🇨🇩<br/>New Caledonia 🇳🇨", desc: "Reggae Boyz entertained, but defense leaked." },
+            { name: "Uzbekistan", code: "UZB", flag: "🇺🇿", pts: 0, gd: -9, pos: 4, status: "OUT", playoff: false, desc: "First World Cup. A learning experience." }
         ]},
         { name: "Group L", teams: [
-            { name: "England", code: "ENG", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", pts: 7, gd: 5, pos: 1, status: "Q" },
-            { name: "Croatia", code: "CRO", flag: "🇭🇷", pts: 5, gd: 2, pos: 2, status: "Q" },
-            { name: "Ghana", code: "GHA", flag: "🇬🇭", pts: 3, gd: 2, pos: 3, status: "Q" },
-            { name: "Panama", code: "PAN", flag: "🇵🇦", pts: 1, gd: -9, pos: 4, status: "OUT" }
+            { name: "England", code: "ENG", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", pts: 7, gd: 5, pos: 1, status: "Q", playoff: false, desc: "Bellingham is carrying them. Ugly wins." },
+            { name: "Croatia", code: "CRO", flag: "🇭🇷", pts: 5, gd: 2, pos: 2, status: "Q", playoff: false, desc: "Modric refuses to age. Midfield control." },
+            { name: "Ghana", code: "GHA", flag: "🇬🇭", pts: 3, gd: 2, pos: 3, status: "Q", playoff: false, desc: "Kudus woke up in match 3 to save them." },
+            { name: "Panama", code: "PAN", flag: "🇵🇦", pts: 1, gd: -9, pos: 4, status: "OUT", playoff: false, desc: "Struggled with the physicality of the group." }
         ]}
     ];
 
@@ -383,13 +449,28 @@
                     </thead>
                     <tbody class="divide-y divide-slate-800">
                         ${g.teams.map((t, i) => `
-                            <tr class="h-10">
-                                <td class="flex items-center h-10">
+                            <tr class="h-10 team-row cursor-pointer hover:bg-slate-700/50 transition-colors rounded">
+                                <td class="flex items-center h-10 px-2 relative">
+                                    <span class="lore-tooltip team-tooltip">
+                                        <span class="lore-header">Scout Report:</span>
+                                        ${t.desc}
+                                    </span>
                                     <span class="mr-2">${t.flag}</span>
-                                    <span class="${i < 2 ? 'text-white font-bold' : 'text-slate-300'}">${t.name}</span>
+                                    <span class="${i < 2 ? 'text-white font-bold' : 'text-slate-300'}">
+                                        ${t.name}
+                                        ${t.playoff ? `
+                                            <span class="ml-1 ticket-wrapper">
+                                                <span>🎟️</span>
+                                                <span class="ticket-tooltip">
+                                                    <span class="ticket-header">PATH OF DESTRUCTION:</span>
+                                                    ${t.playoffDesc}
+                                                </span>
+                                            </span>` 
+                                        : ''}
+                                    </span>
                                 </td>
                                 <td class="text-center font-teko text-lg">${t.pts}</td>
-                                <td class="text-right">
+                                <td class="text-right px-2">
                                     <span class="${t.status === 'Q' ? 'badge-q' : 'badge-out'}">${t.status}</span>
                                 </td>
                             </tr>
@@ -501,18 +582,26 @@
             document.getElementById(`btn-${s}`).classList.remove('bg-blue-600', 'text-white');
             document.getElementById(`btn-${s}`).classList.add('bg-slate-700');
         });
-
+        
         // Show active
         document.getElementById(`${id}-section`).classList.remove('hidden');
         document.getElementById(`btn-${id}`).classList.remove('bg-slate-700');
         document.getElementById(`btn-${id}`).classList.add('bg-blue-600', 'text-white');
+
+        // Show/Hide Legend
+        const legend = document.getElementById('legend-container');
+        if (id === 'groups') {
+            legend.classList.remove('hidden');
+        } else {
+            legend.classList.add('hidden');
+        }
     }
 
     // Init
     renderGroups();
     renderThirdPlace(); // New function
     renderBracket();
-    showSection('bracket'); // Start on bracket
+    showSection('groups'); // Start on groups to show the new features
 
 </script>
 </body>
